@@ -3,6 +3,10 @@
 	"ignore": "test",
 	"package": [
 		{
+			"path": "-v",
+			"revision": ""
+		},
+		{
 			"path": "appengine/cloudsql",
 			"revision": ""
 		},
@@ -83,6 +87,66 @@
 			"path": "gopkg.in/yaml.v2",
 			"revision": "287cf08546ab5e7e37d55a84f7ed3fd1db036de5",
 			"revisionTime": "2017-11-16T09:02:43Z"
+		},
+		{
+			"checksumSHA1": "4LUxo6rjB3R+j6QYxYRFvv6kuVY=",
+			"path": "upper.io/db.v3",
+			"revision": "4ceccb1227aba5fc0f71ca3adc5dd759dfbc093e",
+			"revisionTime": "2017-09-24T11:49:01Z"
+		},
+		{
+			"checksumSHA1": "i2maYYRSi6bkkfzu97ZZzUhCcjc=",
+			"path": "upper.io/db.v3/internal/cache",
+			"revision": "4ceccb1227aba5fc0f71ca3adc5dd759dfbc093e",
+			"revisionTime": "2017-09-24T11:49:01Z"
+		},
+		{
+			"checksumSHA1": "ToEr+HdfxxNijLEKeW4mEs8lHl0=",
+			"path": "upper.io/db.v3/internal/cache/hashstructure",
+			"revision": "4ceccb1227aba5fc0f71ca3adc5dd759dfbc093e",
+			"revisionTime": "2017-09-24T11:49:01Z"
+		},
+		{
+			"checksumSHA1": "urKOk7QFZYcplp6Dn+JMdy9wXqU=",
+			"path": "upper.io/db.v3/internal/immutable",
+			"revision": "4ceccb1227aba5fc0f71ca3adc5dd759dfbc093e",
+			"revisionTime": "2017-09-24T11:49:01Z"
+		},
+		{
+			"checksumSHA1": "HmAiiAzI4U3iky43/QLEvGmVpCY=",
+			"path": "upper.io/db.v3/internal/sqladapter",
+			"revision": "4ceccb1227aba5fc0f71ca3adc5dd759dfbc093e",
+			"revisionTime": "2017-09-24T11:49:01Z"
+		},
+		{
+			"checksumSHA1": "yNnqV3KGFTos+DtGyGk39cyiCps=",
+			"path": "upper.io/db.v3/internal/sqladapter/compat",
+			"revision": "4ceccb1227aba5fc0f71ca3adc5dd759dfbc093e",
+			"revisionTime": "2017-09-24T11:49:01Z"
+		},
+		{
+			"checksumSHA1": "fQ03zAmNtK5sJS8e09jif67AyfY=",
+			"path": "upper.io/db.v3/internal/sqladapter/exql",
+			"revision": "4ceccb1227aba5fc0f71ca3adc5dd759dfbc093e",
+			"revisionTime": "2017-09-24T11:49:01Z"
+		},
+		{
+			"checksumSHA1": "vww4sGRzU4GjJUklTPEX3b+BKZo=",
+			"path": "upper.io/db.v3/lib/reflectx",
+			"revision": "4ceccb1227aba5fc0f71ca3adc5dd759dfbc093e",
+			"revisionTime": "2017-09-24T11:49:01Z"
+		},
+		{
+			"checksumSHA1": "D1RiFz9JGI4ZSXwH7dPeJ+eZJPI=",
+			"path": "upper.io/db.v3/lib/sqlbuilder",
+			"revision": "4ceccb1227aba5fc0f71ca3adc5dd759dfbc093e",
+			"revisionTime": "2017-09-24T11:49:01Z"
+		},
+		{
+			"checksumSHA1": "sLAYE5Eja42/HgT8FQ1nWD/7wqE=",
+			"path": "upper.io/db.v3/mysql",
+			"revision": "4ceccb1227aba5fc0f71ca3adc5dd759dfbc093e",
+			"revisionTime": "2017-09-24T11:49:01Z"
 		}
 	],
 	"rootPath": "github.com/iliecirciumaru/rs-backend"
