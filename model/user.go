@@ -12,3 +12,8 @@ type UserRegisterRequest struct {
 	Password string `json:"password"`
 	Name string `json:"name"`
 }
+
+type UserLoginRequest struct {
+	Login string `json:"login"`
+	Password string `json:"password"`
+}

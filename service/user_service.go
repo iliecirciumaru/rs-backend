@@ -17,8 +17,16 @@ type UserService struct {
 func (s *UserService) RegisterUser(request model.UserRegisterRequest) error {
 	user := model.User{Login: request.Login, Password:request.Password, Name: request.Name}
 
-	fmt.Println("USER SERVICE")
-	fmt.Println(user)
-
 	return s.repo.AddUser(user)
+}
+
+func (s *UserService) Login(request model.UserLoginRequest) (string, error) {
+	user, err := s.repo.GetUserByLoginAndPassword(request.Login, request.Password)
+
+	if err != nil {
+		return "", fmt.Errorf("Login and Password pair is invalid")
+	}
+
+	return user.Login + user.Name, nil
+
 }
