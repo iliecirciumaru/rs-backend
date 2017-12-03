@@ -1,10 +1,10 @@
 package middleware
 
 import (
-	"github.com/iliecirciumaru/rs-backend/repo"
 	"github.com/gin-gonic/gin"
-	"net/http"
+	"github.com/iliecirciumaru/rs-backend/repo"
 	"github.com/iliecirciumaru/rs-backend/structs"
+	"net/http"
 )
 
 func AuthValidation(userRepo repo.UserRepo) gin.HandlerFunc {
@@ -17,9 +17,7 @@ func AuthValidation(userRepo repo.UserRepo) gin.HandlerFunc {
 
 		authToken := c.Request.Header.Get("X-RS-AUTH-TOKEN")
 
-
 		user, err := userRepo.ValidateUserByToken(authToken)
-
 
 		if err == nil && user.ID > 0 {
 			c.Set("user", user)

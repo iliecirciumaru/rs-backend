@@ -3,20 +3,23 @@ package service
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/iliecirciumaru/rs-backend/model"
-	"net/http"
 	"github.com/iliecirciumaru/rs-backend/structs"
+	"net/http"
+	"strconv"
 )
 
-func NewRouteService(userS UserService, ratingS RatingService) RouteService {
+func NewRouteService(userS UserService, ratingS RatingService, movieS MovieService) RouteService {
 	return RouteService{
-		userService: userS,
+		userService:   userS,
 		ratingService: ratingS,
+		movieService:  movieS,
 	}
 }
 
 type RouteService struct {
-	userService UserService
+	userService   UserService
 	ratingService RatingService
+	movieService  MovieService
 }
 
 func (s *RouteService) RegisterUser(c *gin.Context) {
@@ -66,4 +69,23 @@ func (s *RouteService) AddRating(c *gin.Context) {
 	c.JSON(200, gin.H{
 		"message": "rating successfully added",
 	})
+}
+
+func (s *RouteService) GetMovie(c *gin.Context) {
+	user, _ := c.Get("user")
+	u, _ := user.(model.User)
+
+	movieID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, structs.CustomError{Message: "MovieID should be numeric"})
+		return
+	}
+
+	movieView, err := s.movieService.GetMovieWithUserRating(int64(movieID), u)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, structs.CustomError{Message: err.Error()})
+		return
+	}
+
+	c.JSON(200, movieView)
 }

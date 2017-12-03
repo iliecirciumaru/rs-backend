@@ -18,8 +18,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	userRepo, ratingRepo := initRepos(dbsess)
-	routes, _:= initServices(userRepo, ratingRepo)
+	userRepo, ratingRepo, movieRepo := initRepos(dbsess)
+	routes, _, _:= initServices(userRepo, ratingRepo, movieRepo)
 
 	r.Use(middleware.AuthValidation(userRepo))
 
@@ -33,19 +33,23 @@ func bootstrapRoutes(r *gin.Engine, routes service.RouteService) {
 	r.POST("/user", routes.RegisterUser)
 	r.POST("/login", routes.LoginUser)
 	r.POST("/rating", routes.AddRating)
+	r.GET("/movie/:id", routes.GetMovie)
 }
 
-func initServices(userRepo repo.UserRepo, ratingRepo repo.RatingRepo) ( service.RouteService, service.UserService) {
+func initServices(userRepo repo.UserRepo, ratingRepo repo.RatingRepo, movieRepo repo.MovieRepo) (
+	service.RouteService, service.UserService, service.MovieService) {
 	userService := service.NewUserService(userRepo)
 	ratingService := service.NewRatingService(ratingRepo)
-	routes := service.NewRouteService(userService, ratingService)
+	movieService := service.NewMovieService(movieRepo, ratingRepo)
+	routes := service.NewRouteService(userService, ratingService, movieService)
 
-	return routes, userService
+	return routes, userService, movieService
 }
 
-func initRepos(db sqlbuilder.Database) (repo.UserRepo, repo.RatingRepo) {
+func initRepos(db sqlbuilder.Database) (repo.UserRepo, repo.RatingRepo, repo.MovieRepo) {
 	userRepo := repo.NewUserRepo(db)
 	ratingRepo := repo.NewRatingRepo(db)
-	return userRepo, ratingRepo
+	movieRepo := repo.NewMovieRepo(db)
+	return userRepo, ratingRepo, movieRepo
 }
 
