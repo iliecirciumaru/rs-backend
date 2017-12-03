@@ -89,3 +89,20 @@ func (s *RouteService) GetMovie(c *gin.Context) {
 
 	c.JSON(200, movieView)
 }
+
+func (s *RouteService) GetTopMovies(c *gin.Context) {
+	limit, _ := c.GetQuery("limit")
+	number, err := strconv.Atoi(limit)
+	if err != nil {
+		number = 10
+	}
+
+
+	movieViews, err := s.movieService.GetTopRatedMovies(number)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, structs.CustomError{Message: err.Error()})
+		return
+	}
+
+	c.JSON(200, movieViews)
+}

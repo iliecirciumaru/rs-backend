@@ -33,3 +33,10 @@ func (r *RatingRepo) GetRatingByMovieUserID(userID, movieID int64) model.Rating 
 
 	return rating
 }
+
+func (r *RatingRepo) GetAll() ([]model.Rating, error) {
+	var ratings []model.Rating
+	err := r.db.SelectFrom("ratings").All(&ratings)
+
+	return ratings, err
+}

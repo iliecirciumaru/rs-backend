@@ -34,6 +34,7 @@ func bootstrapRoutes(r *gin.Engine, routes service.RouteService) {
 	r.POST("/login", routes.LoginUser)
 	r.POST("/rating", routes.AddRating)
 	r.GET("/movie/:id", routes.GetMovie)
+	r.GET("/top", routes.GetTopMovies)
 }
 
 func initServices(userRepo repo.UserRepo, ratingRepo repo.RatingRepo, movieRepo repo.MovieRepo) (
