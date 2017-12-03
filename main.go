@@ -18,8 +18,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	userRepo := initRepos(dbsess)
-	routes, _:= initServices(userRepo)
+	userRepo, ratingRepo := initRepos(dbsess)
+	routes, _:= initServices(userRepo, ratingRepo)
 
 	r.Use(middleware.AuthValidation(userRepo))
 
@@ -35,15 +35,17 @@ func bootstrapRoutes(r *gin.Engine, routes service.RouteService) {
 	r.POST("/rating", routes.AddRating)
 }
 
-func initServices(userRepo repo.UserRepo) ( service.RouteService, service.UserService) {
+func initServices(userRepo repo.UserRepo, ratingRepo repo.RatingRepo) ( service.RouteService, service.UserService) {
 	userService := service.NewUserService(userRepo)
-	routes := service.NewRouteService(userService)
+	ratingService := service.NewRatingService(ratingRepo)
+	routes := service.NewRouteService(userService, ratingService)
 
 	return routes, userService
 }
 
-func initRepos(db sqlbuilder.Database) repo.UserRepo {
+func initRepos(db sqlbuilder.Database) (repo.UserRepo, repo.RatingRepo) {
 	userRepo := repo.NewUserRepo(db)
-	return userRepo
+	ratingRepo := repo.NewRatingRepo(db)
+	return userRepo, ratingRepo
 }
 

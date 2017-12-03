@@ -5,17 +5,18 @@ import (
 	"github.com/iliecirciumaru/rs-backend/model"
 	"net/http"
 	"github.com/iliecirciumaru/rs-backend/structs"
-	"fmt"
 )
 
-func NewRouteService(userService UserService) RouteService {
+func NewRouteService(userS UserService, ratingS RatingService) RouteService {
 	return RouteService{
-		userService: userService,
+		userService: userS,
+		ratingService: ratingS,
 	}
 }
 
 type RouteService struct {
 	userService UserService
+	ratingService RatingService
 }
 
 func (s *RouteService) RegisterUser(c *gin.Context) {
@@ -50,7 +51,18 @@ func (s *RouteService) LoginUser(c *gin.Context) {
 
 func (s *RouteService) AddRating(c *gin.Context) {
 	user, _ := c.Get("user")
-	fmt.Printf("Request user %v\n", user)
+	u, _ := user.(model.User)
+
+	request := model.RatingAddRequest{}
+	c.BindJSON(&request)
+
+	err := s.ratingService.AddRating(u, request)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, structs.CustomError{Message: err.Error()})
+		return
+	}
+
 	c.JSON(200, gin.H{
 		"message": "rating successfully added",
 	})
