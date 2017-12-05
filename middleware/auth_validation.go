@@ -7,16 +7,21 @@ import (
 	"net/http"
 )
 
+const AUTH_HEADER = "X-RS-AUTH-TOKEN"
+
 func AuthValidation(userRepo repo.UserRepo) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
-		if (c.Request.RequestURI == "/user" && c.Request.Method == http.MethodPost) || c.Request.RequestURI == "/login" {
+		if (c.Request.RequestURI == "/user" && c.Request.Method == http.MethodPost) ||
+			c.Request.RequestURI == "/login" || c.Request.Method == http.MethodOptions{
 			c.Next()
 			return
 		}
 
-		authToken := c.Request.Header.Get("X-RS-AUTH-TOKEN")
-
+		authToken := c.Request.Header.Get(AUTH_HEADER)
+		if authToken == "" {
+			c.AbortWithStatusJSON(http.StatusForbidden, structs.CustomError{"Token 'X-RS-AUTH-TOKEN' is not valid"})
+		}
 		user, err := userRepo.ValidateUserByToken(authToken)
 
 		if err == nil && user.ID > 0 {

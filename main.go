@@ -22,6 +22,7 @@ func main() {
 	routes, _, _:= initServices(userRepo, ratingRepo, movieRepo)
 
 	r.Use(middleware.AuthValidation(userRepo))
+	r.Use(middleware.CORSMiddleware())
 
 	bootstrapRoutes(r, routes)
 
