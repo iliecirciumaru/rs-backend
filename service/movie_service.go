@@ -32,6 +32,9 @@ func (s *MovieService) GetMovieWithUserRating(movieID int64, user model.User) (m
 	movieView.ID = movieID
 	movieView.Information = movie.Information
 	movieView.Title = movie.Title
+	if movie.PosterURL != nil {
+		movieView.PosterURL = *movie.PosterURL
+	}
 
 	rating := s.ratingRepo.GetRatingByMovieUserID(user.ID, movieID)
 	movieView.UserRating = rating.Value
@@ -45,7 +48,7 @@ func (s *MovieService) GetTopRatedMovies(number int) ([]model.MovieView, error) 
 		return nil, err
 	}
 
-	filmAverages := s.rec.ComputeFilmAverages(ratings)
+	filmAverages := s.rec.ComputeFilmAverageScores(ratings)
 
 	movieViews := make([]model.MovieView, len(filmAverages))
 	i := 0
@@ -73,6 +76,9 @@ func (s *MovieService) GetTopRatedMovies(number int) ([]model.MovieView, error) 
 			if view.ID == movie.ID {
 				movieViews[i].Title = movie.Title
 				movieViews[i].Information = movie.Information
+				if movie.PosterURL != nil {
+					movieViews[i].PosterURL = *movie.PosterURL
+				}
 				break
 			}
 		}

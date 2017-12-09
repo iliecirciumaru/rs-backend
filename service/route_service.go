@@ -41,15 +41,13 @@ func (s *RouteService) LoginUser(c *gin.Context) {
 	request := model.UserLoginRequest{}
 	c.BindJSON(&request)
 
-	token, err := s.userService.Login(request)
+	loginReponse, err := s.userService.Login(request)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, structs.CustomError{Message: err.Error()})
 		return
 	}
 
-	c.JSON(200, gin.H{
-		"token": token,
-	})
+	c.JSON(200, loginReponse)
 }
 
 func (s *RouteService) AddRating(c *gin.Context) {

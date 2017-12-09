@@ -20,13 +20,16 @@ func (s *UserService) RegisterUser(request model.UserRegisterRequest) error {
 	return s.repo.AddUser(user)
 }
 
-func (s *UserService) Login(request model.UserLoginRequest) (string, error) {
+func (s *UserService) Login(request model.UserLoginRequest) (model.UserLoginResponse, error) {
 	user, err := s.repo.GetUserByLoginAndPassword(request.Login, request.Password)
 
 	if err != nil {
-		return "", fmt.Errorf("Login and Password pair is invalid")
+		return model.UserLoginResponse{}, fmt.Errorf("Login and Password pair is invalid")
 	}
 
-	return user.Login + user.Name, nil
-
+	return model.UserLoginResponse{
+		Token: user.Login + user.Name,
+		Login: user.Login,
+		Name: user.Name,
+	}, nil
 }

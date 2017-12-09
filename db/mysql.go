@@ -22,7 +22,7 @@ func GetUpperDB(user, password, host, dbname string) (sqlbuilder.Database, error
 	}
 
 	sess, err := umy.Open(settings)
-	sess.SetLogging(true)
+	//sess.SetLogging(true)
 
 
 	return sess, err

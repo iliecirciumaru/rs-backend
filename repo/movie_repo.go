@@ -17,12 +17,6 @@ type MovieRepo struct {
 	db sqlbuilder.Database
 }
 
-//func (r *RatingRepo) AddRating(rating model.Rating) error {
-//	_, err := r.db.Collection("ratings").Insert(&rating)
-//
-//	return err
-//}
-
 func (r *MovieRepo) GetMovieByID(movieID int64) (model.Movie, error) {
 	var movie model.Movie
 	query := r.db.SelectFrom("movies").Where("id = ?", movieID)
@@ -41,9 +35,6 @@ func (r *MovieRepo) GetMovieByIDs(movieIDs []int64) ([]model.Movie, error) {
 		ids += strconv.FormatInt(id, 10)
 	}
 
-	fmt.Println(ids)
-
-
 	var movies []model.Movie
 
 	rows, err := r.db.Query(fmt.Sprintf("SELECT * FROM movies WHERE id IN (%s)", ids))
@@ -52,12 +43,9 @@ func (r *MovieRepo) GetMovieByIDs(movieIDs []int64) ([]model.Movie, error) {
 	//query := r.db.SelectFrom("movies").Where("id IN (?)", ids)
 
 	//err := query.All(&movies)
-	//query.
 	if err != nil {
 		fmt.Println(err)
 	}
-
-	fmt.Println(movies)
 
 	return movies, err
 }

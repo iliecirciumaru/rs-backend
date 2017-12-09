@@ -10,6 +10,10 @@ import (
 	"database/sql"
 	"strconv"
 	"fmt"
+	"github.com/iliecirciumaru/rs-backend/model"
+	"net/http"
+	"io/ioutil"
+	"encoding/json"
 )
 
 func main() {
@@ -37,6 +41,11 @@ func main() {
 	//if err != nil {
 	//	log.Fatal(err)
 	//}
+
+	err = migratePosters(1650, 2550)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func migrateUsers(db *sql.DB) error {
@@ -251,4 +260,112 @@ func createDb(db *sql.DB) error {
 	}
 
 	return nil
+}
+
+func migratePosters(fromMovie, toMovie int) error {
+	upper, err := db.GetUpperDB("root", "password", "127.0.0.1", "rs")
+	if err != nil {
+		return err
+	}
+
+	var movies []model.Movie
+
+	err = upper.SelectFrom("movies").OrderBy("id").All(&movies)
+	if err != nil {
+		return err
+	}
+
+	if toMovie > len(movies) {
+		toMovie = len(movies)
+	}
+
+	movies = movies[fromMovie:toMovie]
+
+	links, err := readLinks()
+	if err != nil {
+		return err
+	}
+
+	var imdbID string
+	var jsonMovie map[string]interface{}
+
+	for _, m := range movies {
+		// fetch from imdb movie
+		// http://www.omdbapi.com/?i=tt0114709&apikey=3e4a893b
+		imdbID = links[m.ID]
+		res, err := http.Get(fmt.Sprintf("http://www.omdbapi.com/?i=tt%s&apikey=3e4a893b",imdbID))
+		if err != nil {
+			fmt.Printf("Problem during fetch occured: %d - %s\n", m.ID, imdbID)
+			return err
+		}
+
+
+		// extract url
+		data, err := ioutil.ReadAll(res.Body)
+		res.Body.Close()
+		if err != nil {
+			return err
+		}
+
+		err = json.Unmarshal(data, &jsonMovie)
+		if err != nil {
+			fmt.Printf("Problem during unmarshal occured: %d - %s\n", m.ID, imdbID)
+			continue
+		}
+
+		poster, ok := jsonMovie["Poster"].(string)
+		if !ok {
+			fmt.Printf("No poster: %d - %s\n", m.ID, imdbID)
+			continue
+		}
+
+		// save it in db
+		_, err = upper.Exec(`UPDATE movies SET poster_image_url = ? WHERE id = ?`, poster, m.ID)
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+	}
+
+	fmt.Println("Fetching of poster movies successfully completed")
+
+	return nil
+}
+
+// return map: movieLensID => imdbID
+func readLinks() (map[int64]string, error) {
+	file, err := os.Open("./data/smallset/links.csv")
+	if err != nil {
+		return nil, err
+	}
+
+	r := csv.NewReader(bufio.NewReader(file))
+
+	links := make(map[int64]string)
+
+	i := -1
+
+	var movieID int
+	for {
+		record, err := r.Read()
+		if err == io.EOF {
+			break
+		}
+
+		if i == -1 {
+			i++
+			continue
+		}
+
+		movieID,  _ = strconv.Atoi(record[0])
+
+
+		links[int64(movieID)] = record[1]
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return links, nil
 }
