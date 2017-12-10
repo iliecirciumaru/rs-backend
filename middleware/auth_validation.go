@@ -13,7 +13,7 @@ func AuthValidation(userRepo repo.UserRepo) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		if (c.Request.RequestURI == "/user" && c.Request.Method == http.MethodPost) ||
-			c.Request.RequestURI == "/login" || c.Request.Method == http.MethodOptions{
+			c.Request.RequestURI == "/login" || c.Request.Method == http.MethodOptions {
 			c.Next()
 			return
 		}

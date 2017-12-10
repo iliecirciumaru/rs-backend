@@ -1,13 +1,13 @@
 package service
 
 import (
-	"github.com/iliecirciumaru/rs-backend/repo"
-	"github.com/iliecirciumaru/rs-backend/model"
 	"fmt"
+	"github.com/iliecirciumaru/rs-backend/model"
+	"github.com/iliecirciumaru/rs-backend/repo"
 )
 
 func NewUserService(userRepo repo.UserRepo) UserService {
-	return UserService{repo:userRepo}
+	return UserService{repo: userRepo}
 }
 
 type UserService struct {
@@ -15,7 +15,7 @@ type UserService struct {
 }
 
 func (s *UserService) RegisterUser(request model.UserRegisterRequest) error {
-	user := model.User{Login: request.Login, Password:request.Password, Name: request.Name}
+	user := model.User{Login: request.Login, Password: request.Password, Name: request.Name}
 
 	return s.repo.AddUser(user)
 }
@@ -30,6 +30,6 @@ func (s *UserService) Login(request model.UserLoginRequest) (model.UserLoginResp
 	return model.UserLoginResponse{
 		Token: user.Login + user.Name,
 		Login: user.Login,
-		Name: user.Name,
+		Name:  user.Name,
 	}, nil
 }

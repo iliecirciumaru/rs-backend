@@ -1,19 +1,19 @@
 package main
 
 import (
-	"os"
-	"log"
-	"encoding/csv"
 	"bufio"
-	"io"
-	"github.com/iliecirciumaru/rs-backend/db"
 	"database/sql"
-	"strconv"
-	"fmt"
-	"github.com/iliecirciumaru/rs-backend/model"
-	"net/http"
-	"io/ioutil"
+	"encoding/csv"
 	"encoding/json"
+	"fmt"
+	"github.com/iliecirciumaru/rs-backend/db"
+	"github.com/iliecirciumaru/rs-backend/model"
+	"io"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"os"
+	"strconv"
 )
 
 func main() {
@@ -42,7 +42,7 @@ func main() {
 	//	log.Fatal(err)
 	//}
 
-	err = migratePosters(1650, 2550)
+	err = migratePosters(2550, 3450)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func migrateUsers(db *sql.DB) error {
 	}
 
 	r := csv.NewReader(bufio.NewReader(file))
-	prevUser := 0;
+	prevUser := 0
 	prepareQuery, err := db.Prepare("INSERT INTO users VALUES (?, ?, ?, ?)")
 
 	logins := []string{"log1", "log2", "log3", "log4", "log5"}
@@ -93,7 +93,7 @@ func migrateUsers(db *sql.DB) error {
 		prevUser = userId
 		sf := strconv.Itoa(i)
 		i++
-		_, err = prepareQuery.Exec(userId, logins[i%len(logins)] + sf, passwords[i%len(passwords)] + sf, names[i%len(names)] + sf)
+		_, err = prepareQuery.Exec(userId, logins[i%len(logins)]+sf, passwords[i%len(passwords)]+sf, names[i%len(names)]+sf)
 		if err != nil {
 			return err
 		}
@@ -119,7 +119,6 @@ func migrateRatings(db *sql.DB) error {
 	r := csv.NewReader(bufio.NewReader(file))
 
 	prepareQuery, err := db.Prepare("INSERT INTO ratings VALUES (?, ?, ?, ?)")
-
 
 	if err != nil {
 		return err
@@ -186,7 +185,6 @@ func migrateMovies(db *sql.DB) error {
 	r := csv.NewReader(bufio.NewReader(file))
 
 	prepareQuery, err := db.Prepare("INSERT INTO movies VALUES (?, ?, ?)")
-
 
 	if err != nil {
 		return err
@@ -293,12 +291,11 @@ func migratePosters(fromMovie, toMovie int) error {
 		// fetch from imdb movie
 		// http://www.omdbapi.com/?i=tt0114709&apikey=3e4a893b
 		imdbID = links[m.ID]
-		res, err := http.Get(fmt.Sprintf("http://www.omdbapi.com/?i=tt%s&apikey=3e4a893b",imdbID))
+		res, err := http.Get(fmt.Sprintf("http://www.omdbapi.com/?i=tt%s&apikey=3e4a893b", imdbID))
 		if err != nil {
 			fmt.Printf("Problem during fetch occured: %d - %s\n", m.ID, imdbID)
 			return err
 		}
-
 
 		// extract url
 		data, err := ioutil.ReadAll(res.Body)
@@ -357,8 +354,7 @@ func readLinks() (map[int64]string, error) {
 			continue
 		}
 
-		movieID,  _ = strconv.Atoi(record[0])
-
+		movieID, _ = strconv.Atoi(record[0])
 
 		links[int64(movieID)] = record[1]
 

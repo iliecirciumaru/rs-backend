@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/iliecirciumaru/rs-backend/db"
+	"github.com/iliecirciumaru/rs-backend/evaluation/structs"
 	"github.com/iliecirciumaru/rs-backend/model"
 	"io/ioutil"
 	"log"
 	"math"
 	"time"
 	"upper.io/db.v3/lib/sqlbuilder"
-	"github.com/iliecirciumaru/rs-backend/evaluation/structs"
 )
 
 func main() {
@@ -19,7 +19,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	neighbours := []uint{5, 10, 15, 20, 25, 30}
+	neighbours := []uint{2, 4, 5, 6, 8, 10, 12, 14, 15, 16, 20, 25, 30}
 	uuResults := make([]structs.EvaluationUUResult, len(neighbours))
 
 	for i, n := range neighbours {
@@ -78,7 +78,7 @@ func EvaluateUURecommender(dbsess sqlbuilder.Database, neighbours uint) structs.
 		//userCount = 0
 
 		//fmt.Printf("Start prediction for user %v\n", userID)
-		scores := recommender.PredictUserScores(userID, testratings)
+		scores := recommender.PredictUserScoreUUCLF(userID, testratings)
 		//fmt.Printf("Predicted scores for %d movies\n", len(scores))
 		for _, prediction := range scores {
 
@@ -107,7 +107,7 @@ func EvaluateUURecommender(dbsess sqlbuilder.Database, neighbours uint) structs.
 
 	uuResult.GlobalRMSE = globalRMSE
 	uuResult.PredictionsUsed = globalCount
-	uuResult.TotalTime = float64(end - start) / 1000000000
+	uuResult.TotalTime = float64(end-start) / 1000000000
 	uuResult.TimePerUser = float64(uuResult.TotalTime) / float64(userPredictedCount)
 	return uuResult
 }

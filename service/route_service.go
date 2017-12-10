@@ -89,14 +89,48 @@ func (s *RouteService) GetMovie(c *gin.Context) {
 }
 
 func (s *RouteService) GetTopMovies(c *gin.Context) {
-	limit, _ := c.GetQuery("limit")
-	number, err := strconv.Atoi(limit)
+	snumber, _ := c.GetQuery("number")
+	number, err := strconv.Atoi(snumber)
 	if err != nil {
 		number = 10
 	}
 
-
 	movieViews, err := s.movieService.GetTopRatedMovies(number)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, structs.CustomError{Message: err.Error()})
+		return
+	}
+
+	c.JSON(200, movieViews)
+}
+
+func (s *RouteService) GetReccommendedMovies(c *gin.Context) {
+	snumber, _ := c.GetQuery("number")
+	number, err := strconv.Atoi(snumber)
+	if err != nil {
+		number = 10
+	}
+
+	user, _ := c.Get("user")
+	u, _ := user.(model.User)
+
+	movieViews, err := s.movieService.GetRecommendationForUser(u, number)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, structs.CustomError{Message: err.Error()})
+		return
+	}
+
+	c.JSON(200, movieViews)
+}
+
+func (s *RouteService) GetRecentReleases(c *gin.Context) {
+	snumber, _ := c.GetQuery("number")
+	number, err := strconv.Atoi(snumber)
+	if err != nil {
+		number = 10
+	}
+
+	movieViews, err := s.movieService.GetRecentReleases(number)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, structs.CustomError{Message: err.Error()})
 		return

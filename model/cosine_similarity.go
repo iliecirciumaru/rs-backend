@@ -1,7 +1,7 @@
 package model
 
 type Similarity struct {
-	ID int64
+	ID    int64
 	Value float64
 }
 

@@ -1,10 +1,10 @@
 package repo
 
 import (
-	"upper.io/db.v3/lib/sqlbuilder"
-	"github.com/iliecirciumaru/rs-backend/model"
 	"fmt"
+	"github.com/iliecirciumaru/rs-backend/model"
 	"strconv"
+	"upper.io/db.v3/lib/sqlbuilder"
 )
 
 func NewMovieRepo(db sqlbuilder.Database) MovieRepo {
@@ -40,9 +40,22 @@ func (r *MovieRepo) GetMovieByIDs(movieIDs []int64) ([]model.Movie, error) {
 	rows, err := r.db.Query(fmt.Sprintf("SELECT * FROM movies WHERE id IN (%s)", ids))
 	iter := sqlbuilder.NewIterator(rows)
 	err = iter.All(&movies)
-	//query := r.db.SelectFrom("movies").Where("id IN (?)", ids)
 
-	//err := query.All(&movies)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return movies, err
+}
+
+func (r *MovieRepo) GetLatestMovies(number int) ([]model.Movie, error) {
+	var movies []model.Movie
+	// TODO change to desc, when latest movies have poster urls
+	rows, err := r.db.Query(fmt.Sprintf("SELECT * FROM movies ORDER BY id ASC LIMIT %d", number))
+
+	iter := sqlbuilder.NewIterator(rows)
+	err = iter.All(&movies)
+
 	if err != nil {
 		fmt.Println(err)
 	}

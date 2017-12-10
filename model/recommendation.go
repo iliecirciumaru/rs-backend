@@ -1,10 +1,10 @@
 package model
 
 import (
-	"math"
-	"sort"
 	"fmt"
 	"log"
+	"math"
+	"sort"
 )
 
 type Recommendation struct {
@@ -36,7 +36,7 @@ func (r *Recommendation) ComputeFilmAverageScores(ratings []Rating) map[int64]fl
 
 // returns: movieID => predictedScore
 // are returned only movies, which user hasn't rated
-func (r *Recommendation) PredictUserScores(userID int64, ratings []Rating) []MoviePrediction {
+func (r *Recommendation) PredictUserScoreUUCLF(userID int64, ratings []Rating) []MoviePrediction {
 	userMovieRatings := r.GetUserMovieRatings(ratings)
 	userAverageScore := float64(0)
 
@@ -50,7 +50,6 @@ func (r *Recommendation) PredictUserScores(userID int64, ratings []Rating) []Mov
 	}
 
 	userAverageScore /= float64(len(userMovieRatings[userID]))
-
 
 	r.normalizeUserMovieRatings(userMovieRatings)
 
@@ -95,7 +94,7 @@ func (r *Recommendation) PredictUserScores(userID int64, ratings []Rating) []Mov
 		for _, similarity := range cosineSimilarities {
 
 			if neighbours == r.UuNeighbours {
-				score = nominator / denominator + userAverageScore
+				score = nominator/denominator + userAverageScore
 				if math.IsNaN(score) {
 					fmt.Println("NaN score for movie %v, user %v\n", movieID, userID)
 				}
@@ -108,7 +107,7 @@ func (r *Recommendation) PredictUserScores(userID int64, ratings []Rating) []Mov
 			}
 
 			if _, ok := uRatings[similarity.ID]; ok {
-				neighbours++;
+				neighbours++
 				// if positive similarities are not enough
 				// we don't recommend this film at all
 				if similarity.Value <= 0 {
@@ -251,7 +250,7 @@ func (r *Recommendation) cosineSimilarity(ratings1, ratings2 map[int64]float64) 
 
 	denominator := math.Sqrt(denom1) * math.Sqrt(denom2)
 	if math.IsNaN(denominator) {
-		log.Fatalf("%v, %v", ratings1, ratings2 )
+		log.Fatalf("%v, %v", ratings1, ratings2)
 	}
 	if denominator == 0 {
 		return 0

@@ -1,9 +1,11 @@
 package repo
 
 import (
-	"upper.io/db.v3/lib/sqlbuilder"
-	"github.com/iliecirciumaru/rs-backend/model"
 	"fmt"
+	"github.com/iliecirciumaru/rs-backend/model"
+	"upper.io/db.v3/lib/sqlbuilder"
+	"strconv"
+	"github.com/iliecirciumaru/rs-backend/structs"
 )
 
 func NewRatingRepo(db sqlbuilder.Database) RatingRepo {
@@ -39,4 +41,30 @@ func (r *RatingRepo) GetAll() ([]model.Rating, error) {
 	err := r.db.SelectFrom("ratings").All(&ratings)
 
 	return ratings, err
+}
+
+func (r *RatingRepo) GetAVGMovieRating(movieIDs []int64) ([]structs.KeyValue, error){
+	var ids string = ""
+
+	for i, id := range movieIDs {
+		if i != 0 {
+			ids += ","
+		}
+		ids += strconv.FormatInt(id, 10)
+	}
+
+	var res []structs.KeyValue
+
+	qs := fmt.Sprintf("SELECT idmovie as 'key', AVG(rating) as 'value' FROM ratings WHERE idmovie IN (%s) GROUP BY idmovie", ids)
+
+	rows, err := r.db.Query(qs)
+	iter := sqlbuilder.NewIterator(rows)
+	err = iter.All(&res)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return res, err
+
 }

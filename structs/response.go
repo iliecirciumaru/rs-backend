@@ -5,5 +5,5 @@ type JsonResponse struct {
 }
 
 func SuccessResponse(message string) JsonResponse {
-	return JsonResponse{message:message}
+	return JsonResponse{message: message}
 }
