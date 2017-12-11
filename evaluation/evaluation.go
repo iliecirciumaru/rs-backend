@@ -13,6 +13,8 @@ import (
 	"upper.io/db.v3/lib/sqlbuilder"
 )
 
+var recommender model.Recommendation = model.Recommendation{UuNeighbours:2}
+
 func main() {
 	dbsess, err := db.GetUpperDB("root", "password", "127.0.0.1", "rs")
 	if err != nil {
@@ -33,7 +35,7 @@ func main() {
 
 
 	// test IICLF recommender
-	neighbours = []uint{4}
+	neighbours = []uint{2, 4, 5, 6, 8, 10, 12, 14, 15, 16, 20, 25, 30}
 	iiResults := make([]structs.EvaluationUUResult, len(neighbours))
 
 	for i, n := range neighbours {
@@ -62,7 +64,7 @@ func getRatings(dbsses sqlbuilder.Database, tableName string) []model.Rating {
 func EvaluateUURecommender(dbsess sqlbuilder.Database, neighbours uint, uuCLF bool) structs.EvaluationUUResult {
 	uuResult := structs.EvaluationUUResult{Neighbours: neighbours}
 
-	recommender := model.Recommendation{neighbours}
+	recommender.UuNeighbours = neighbours
 
 	// accumulator for goabal rmse
 	globalRMSE := float64(0)
@@ -92,7 +94,7 @@ func EvaluateUURecommender(dbsess sqlbuilder.Database, neighbours uint, uuCLF bo
 		//userRMSE = 0
 		//userCount = 0
 
-		fmt.Printf("Start prediction for user %v\n", userID)
+		//fmt.Printf("Start prediction for user %v\n", userID)
 		var scores []model.MoviePrediction
 		if uuCLF {
 			scores = recommender.PredictUserScoreUUCLF(userID, testratings)
@@ -100,7 +102,7 @@ func EvaluateUURecommender(dbsess sqlbuilder.Database, neighbours uint, uuCLF bo
 			scores = recommender.PredictUserScoreIICLF(userID, testratings)
 		}
 
-		fmt.Printf("Predicted scores for %d movies\n", len(scores))
+		//fmt.Printf("Predicted scores for %d movies\n", len(scores))
 		for _, prediction := range scores {
 
 			if realRating, ok := userMovieRating[userID][prediction.MovieID]; ok {

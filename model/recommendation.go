@@ -5,10 +5,12 @@ import (
 	"log"
 	"math"
 	"sort"
+	"sync"
 )
 
 type Recommendation struct {
 	UuNeighbours uint
+	movieSimilarties map[int64][]Similarity
 }
 
 // returns: movieID => averageScore (Normalized)
@@ -158,31 +160,36 @@ func (r *Recommendation) PredictUserScoreIICLF(userID int64, ratings []Rating) [
 	filmPredictions := make([]MoviePrediction, 0, 20)
 
 
+	if r.movieSimilarties == nil {
+		r.calculateMovieSimilarites(movieUserRatings)
+	}
 
-	cosineSimilarities := make([]Similarity, 0, len(movieUserRatings)-1)
 
-	for movieID, userRatings := range movieUserRatings {
+
+	//cosineSimilarities := make([]Similarity, 0, len(movieUserRatings)-1)
+
+	for movieID, _ := range movieUserRatings {
 		// calculate cosine similarites
-		for movieID2, userRatings2 := range movieUserRatings {
-			if movieID == movieID2 {
-				continue
-			}
-
-			cosineSimilarities = append(cosineSimilarities, Similarity{
-				ID:    movieID2,
-				Value: r.cosineSimilarity(userRatings, userRatings2),
-			})
-
-		}
-
-		sort.Sort(BySimilarityDesc(cosineSimilarities))
+		//for movieID2, userRatings2 := range movieUserRatings {
+		//	if movieID == movieID2 {
+		//		continue
+		//	}
+		//
+		//	cosineSimilarities = append(cosineSimilarities, Similarity{
+		//		ID:    movieID2,
+		//		Value: r.cosineSimilarity(userRatings, userRatings2),
+		//	})
+		//
+		//}
+		//
+		//sort.Sort(BySimilarityDesc(cosineSimilarities))
 
 		denominator := float64(0)
 		nominator := float64(0)
 		neighbours := uint(0)
 		score := float64(0)
 
-		for _, similarity := range cosineSimilarities {
+		for _, similarity := range r.movieSimilarties[movieID] {
 
 			if neighbours == r.UuNeighbours {
 				score = nominator/denominator + movieAverages[movieID]
@@ -215,6 +222,41 @@ func (r *Recommendation) PredictUserScoreIICLF(userID int64, ratings []Rating) [
 	sort.Sort(ByScoreDesc(filmPredictions))
 
 	return filmPredictions
+}
+
+
+func (r *Recommendation) calculateMovieSimilarites(movieUserRatings map[int64]map[int64]float64) {
+	var wg sync.WaitGroup
+	mutex := sync.Mutex{}
+
+	r.movieSimilarties = make(map[int64][]Similarity)
+
+	for movieID, uRatings := range movieUserRatings {
+		wg.Add(1)
+		go func(mID int64, uRats map[int64]float64, wg *sync.WaitGroup, mut *sync.Mutex) {
+			defer wg.Done()
+			cosineSimilarities := make([]Similarity, 0, len(movieUserRatings)-1)
+			for m2ID, u2Ratings := range movieUserRatings {
+				if mID == m2ID {
+					continue
+				}
+
+				cosineSimilarities = append(cosineSimilarities, Similarity{
+					ID:    m2ID,
+					Value: r.cosineSimilarity(uRats, u2Ratings),
+				})
+			}
+
+			sort.Sort(BySimilarityDesc(cosineSimilarities))
+			mutex.Lock()
+			r.movieSimilarties[mID] = cosineSimilarities
+			mutex.Unlock()
+
+		}(movieID, uRatings, &wg, &mutex)
+	}
+
+
+	wg.Wait()
 }
 
 func (r *Recommendation) GetMostSimilarMovies(movieID int64, ratings []Rating) []Similarity {
