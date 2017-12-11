@@ -138,3 +138,25 @@ func (s *RouteService) GetRecentReleases(c *gin.Context) {
 
 	c.JSON(200, movieViews)
 }
+
+func (s *RouteService) GetSimilar(c *gin.Context) {
+	snumber, _ := c.GetQuery("number")
+	number, err := strconv.Atoi(snumber)
+	if err != nil {
+		number = 10
+	}
+
+	movieID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, structs.CustomError{Message: "MovieID should be numeric"})
+		return
+	}
+
+	movieViews, err := s.movieService.GetSimilarMovies(int64(movieID), number)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, structs.CustomError{Message: err.Error()})
+		return
+	}
+
+	c.JSON(200, movieViews)
+}

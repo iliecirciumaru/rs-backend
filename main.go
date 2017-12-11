@@ -34,6 +34,7 @@ func bootstrapRoutes(r *gin.Engine, routes service.RouteService) {
 	r.POST("/login", routes.LoginUser)
 	r.POST("/rating", routes.AddRating)
 	r.GET("/movie/:id", routes.GetMovie)
+	r.GET("/movie/:id/similar", routes.GetSimilar)
 	r.GET("/movies/top", routes.GetTopMovies)
 	r.GET("/movies/recommended", routes.GetReccommendedMovies)
 	r.GET("/movies/recent", routes.GetRecentReleases)

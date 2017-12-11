@@ -20,14 +20,29 @@ func main() {
 	}
 
 	neighbours := []uint{2, 4, 5, 6, 8, 10, 12, 14, 15, 16, 20, 25, 30}
-	uuResults := make([]structs.EvaluationUUResult, len(neighbours))
+	//uuResults := make([]structs.EvaluationUUResult, len(neighbours))
+
+
+	//// test UUCLF recommender
+	//for i, n := range neighbours {
+	//	uuResults[i] = EvaluateUURecommender(dbsess, n, true)
+	//}
+	//
+	//rawResult, _ := json.MarshalIndent(uuResults, "", "    ")
+	//saveResults(rawResult, "uuCLF")
+
+
+	// test IICLF recommender
+	neighbours = []uint{4}
+	iiResults := make([]structs.EvaluationUUResult, len(neighbours))
 
 	for i, n := range neighbours {
-		uuResults[i] = EvaluateUURecommender(dbsess, n)
+		iiResults[i] = EvaluateUURecommender(dbsess, n, false)
 	}
 
-	rawResult, _ := json.MarshalIndent(uuResults, "", "    ")
-	saveResults(rawResult, "uuCLF")
+	rawResult, _ := json.MarshalIndent(iiResults, "", "    ")
+	saveResults(rawResult, "iiCLF")
+
 }
 
 func saveResults(data []byte, filename string) {
@@ -44,7 +59,7 @@ func getRatings(dbsses sqlbuilder.Database, tableName string) []model.Rating {
 	return ratings
 }
 
-func EvaluateUURecommender(dbsess sqlbuilder.Database, neighbours uint) structs.EvaluationUUResult {
+func EvaluateUURecommender(dbsess sqlbuilder.Database, neighbours uint, uuCLF bool) structs.EvaluationUUResult {
 	uuResult := structs.EvaluationUUResult{Neighbours: neighbours}
 
 	recommender := model.Recommendation{neighbours}
@@ -77,9 +92,15 @@ func EvaluateUURecommender(dbsess sqlbuilder.Database, neighbours uint) structs.
 		//userRMSE = 0
 		//userCount = 0
 
-		//fmt.Printf("Start prediction for user %v\n", userID)
-		scores := recommender.PredictUserScoreUUCLF(userID, testratings)
-		//fmt.Printf("Predicted scores for %d movies\n", len(scores))
+		fmt.Printf("Start prediction for user %v\n", userID)
+		var scores []model.MoviePrediction
+		if uuCLF {
+			scores = recommender.PredictUserScoreUUCLF(userID, testratings)
+		} else {
+			scores = recommender.PredictUserScoreIICLF(userID, testratings)
+		}
+
+		fmt.Printf("Predicted scores for %d movies\n", len(scores))
 		for _, prediction := range scores {
 
 			if realRating, ok := userMovieRating[userID][prediction.MovieID]; ok {

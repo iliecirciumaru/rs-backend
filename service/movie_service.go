@@ -173,12 +173,64 @@ func (s *MovieService) GetRecentReleases(number int) ([]model.MovieView, error) 
 		for _, avg := range avgs {
 			for i := 0; i < len(result); i++ {
 				if result[i].ID == avg.Key {
-					result[i].AverageRating = avg.Value
+					result[i].AverageRating = model.RoundRating(avg.Value)
 					break
 				}
 			}
 		}
 	}
+
+	return result, nil
+}
+
+func (s *MovieService) GetSimilarMovies(movieID int64, number int) ([]model.MovieView, error) {
+	ratings, err := s.ratingRepo.GetAll()
+	if err != nil {
+		return nil, err
+	}
+
+	similarities := s.rec.GetMostSimilarMovies(movieID, ratings)
+	if len(similarities) == 0 {
+		return s.GetTopRatedMovies(number)
+	}
+
+	if len(similarities) < number {
+		number = len(similarities)
+	}
+
+	similarities = similarities[:number]
+	movieIDs := make([]int64, number)
+	for i, sim := range similarities {
+		movieIDs[i] = sim.ID
+	}
+
+	result := make([]model.MovieView, number)
+
+	movies, err := s.repo.GetMovieByIDs(movieIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	avgs, err := s.ratingRepo.GetAVGMovieRating(movieIDs)
+	for i, m := range movies {
+		result[i] = model.MovieView{
+			ID: m.ID,
+			Title: m.Title,
+			Information: m.Information,
+		}
+		if m.PosterURL != nil {
+			result[i].PosterURL = *m.PosterURL
+		}
+
+		for _, avg := range avgs {
+			if avg.Key == m.ID {
+				result[i].AverageRating = model.RoundRating(avg.Value)
+				break
+			}
+		}
+
+	}
+
 
 	return result, nil
 }

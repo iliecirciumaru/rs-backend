@@ -11,7 +11,7 @@ type Recommendation struct {
 	UuNeighbours uint
 }
 
-// returns: movieID => averageScore
+// returns: movieID => averageScore (Normalized)
 func (r *Recommendation) ComputeFilmAverageScores(ratings []Rating) map[int64]float64 {
 	userRatings := r.getUserRatingVectors(ratings)
 	filmRatings := r.getMovieUserRatings(ratings)
@@ -51,7 +51,7 @@ func (r *Recommendation) PredictUserScoreUUCLF(userID int64, ratings []Rating) [
 
 	userAverageScore /= float64(len(userMovieRatings[userID]))
 
-	r.normalizeUserMovieRatings(userMovieRatings)
+	r.normalizeUserMovieOrMovieUserRatings(userMovieRatings)
 
 	//debug(userMovieRatings, true)
 
@@ -126,6 +126,126 @@ func (r *Recommendation) PredictUserScoreUUCLF(userID int64, ratings []Rating) [
 	return filmPredictions
 }
 
+
+// returns: movieID => predictedScore
+// are returned only movies, which user hasn't rated
+func (r *Recommendation) PredictUserScoreIICLF(userID int64, ratings []Rating) []MoviePrediction {
+	userMovieRatings := r.GetUserMovieRatings(ratings)
+	// user hasn't rated any movies, we don't predict anything
+	if _, ok := userMovieRatings[userID]; !ok {
+		return nil
+	}
+
+	uRatings := userMovieRatings[userID]
+
+	movieUserRatings := r.getMovieUserRatings(ratings)
+
+
+	movieAverages := make(map[int64]float64, len(movieUserRatings))
+	for movieID, userRatings := range movieUserRatings {
+		rates := make([]float64, len(userRatings))
+		i := 0
+		for _, r := range userRatings {
+			rates[i] = r
+			i++
+		}
+
+		movieAverages[movieID] = r.MeanRating(rates)
+	}
+
+	r.normalizeUserMovieOrMovieUserRatings(movieUserRatings)
+
+	filmPredictions := make([]MoviePrediction, 0, 20)
+
+
+
+	cosineSimilarities := make([]Similarity, 0, len(movieUserRatings)-1)
+
+	for movieID, userRatings := range movieUserRatings {
+		// calculate cosine similarites
+		for movieID2, userRatings2 := range movieUserRatings {
+			if movieID == movieID2 {
+				continue
+			}
+
+			cosineSimilarities = append(cosineSimilarities, Similarity{
+				ID:    movieID2,
+				Value: r.cosineSimilarity(userRatings, userRatings2),
+			})
+
+		}
+
+		sort.Sort(BySimilarityDesc(cosineSimilarities))
+
+		denominator := float64(0)
+		nominator := float64(0)
+		neighbours := uint(0)
+		score := float64(0)
+
+		for _, similarity := range cosineSimilarities {
+
+			if neighbours == r.UuNeighbours {
+				score = nominator/denominator + movieAverages[movieID]
+				if math.IsNaN(score) {
+					fmt.Println("NaN score for movie %v, user %v\n", movieID, userID)
+				}
+				if score > 8 {
+					fmt.Printf("Movie %v, User %v\n, Score %v, denom %v, nomin %v\n", movieID, userID, score, denominator, nominator)
+				}
+				//fmt.Printf("Score for film %v, equals %v\n", movieID, score)
+
+				filmPredictions = append(filmPredictions, MoviePrediction{MovieID: movieID, PredictedScore: score})
+				break
+			}
+
+			if movieRating, ok := uRatings[similarity.ID]; ok {
+				neighbours++
+				// if positive similarities are not enough
+				// we don't recommend this film at all
+				if similarity.Value <= 0 {
+					break
+				}
+
+				denominator += similarity.Value
+				nominator += similarity.Value * (movieRating - movieAverages[similarity.ID])
+			}
+		}
+	}
+
+	sort.Sort(ByScoreDesc(filmPredictions))
+
+	return filmPredictions
+}
+
+func (r *Recommendation) GetMostSimilarMovies(movieID int64, ratings []Rating) []Similarity {
+	movieUserRatings := r.getMovieUserRatings(ratings)
+	if _, ok := movieUserRatings[movieID]; !ok {
+		return nil
+	}
+
+	r.normalizeUserMovieOrMovieUserRatings(movieUserRatings)
+	cosineSimilarities := make([]Similarity, 0, len(movieUserRatings)-1)
+
+
+	userRatings := movieUserRatings[movieID]
+	// calculate cosine similarites
+	for movieID2, userRatings2 := range movieUserRatings {
+		if movieID == movieID2 {
+			continue
+		}
+
+		cosineSimilarities = append(cosineSimilarities, Similarity{
+			ID:    movieID2,
+			Value: r.cosineSimilarity(userRatings, userRatings2),
+		})
+
+	}
+
+	sort.Sort(BySimilarityDesc(cosineSimilarities))
+
+	return cosineSimilarities
+}
+
 // return: userID => [movieRatingi, movieRating]
 func (r *Recommendation) getUserRatingVectors(ratings []Rating) map[int64][]float64 {
 	userRatings := make(map[int64][]float64, 0)
@@ -185,12 +305,12 @@ func (r *Recommendation) MeanRating(ratings []float64) float64 {
 	return sum / float64(i)
 }
 
-// returns: userID => [movieID => rating]
-func (r *Recommendation) normalizeUserMovieRatings(userMovieRatings map[int64]map[int64]float64) {
+// returns: userID => [movieID => rating] || movieID => [userID => rating]
+func (r *Recommendation) normalizeUserMovieOrMovieUserRatings(IDtoIDratings map[int64]map[int64]float64) {
 	var ratings []float64
 	var average float64
 	var newRatings map[int64]float64
-	for userID, movieRating := range userMovieRatings {
+	for userID, movieRating := range IDtoIDratings {
 		if len(movieRating) == 0 {
 			continue
 		}
@@ -205,7 +325,7 @@ func (r *Recommendation) normalizeUserMovieRatings(userMovieRatings map[int64]ma
 			newRatings[movieID] = rating - average
 		}
 
-		userMovieRatings[userID] = newRatings
+		IDtoIDratings[userID] = newRatings
 	}
 }
 
