@@ -62,3 +62,20 @@ func (r *MovieRepo) GetLatestMovies(number int) ([]model.Movie, error) {
 
 	return movies, err
 }
+
+func (r *MovieRepo) GetMoviesByPrefix(prefix string) ([]model.Movie, error) {
+	var movies []model.Movie
+	sqlStr := fmt.Sprintf("SELECT * FROM movies WHERE title LIKE '%s%%' ORDER BY id ASC LIMIT 5", prefix)
+	fmt.Println(sqlStr)
+
+	rows, err := r.db.Query(sqlStr)
+
+	iter := sqlbuilder.NewIterator(rows)
+	err = iter.All(&movies)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return movies, err
+}

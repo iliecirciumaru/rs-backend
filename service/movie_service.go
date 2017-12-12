@@ -46,7 +46,7 @@ func (s *MovieService) GetMovieWithUserRating(movieID int64, user model.User) (m
 
 	avg, err := s.ratingRepo.GetAVGMovieRating([]int64{movieID})
 	if err == nil && len(avg) == 1 {
-		movieView.AverageRating = avg[0].Value
+		movieView.AverageRating = model.RoundRating(avg[0].Value)
 	}
 
 	movieView.UserRating = rating.Value
@@ -154,8 +154,31 @@ func (s *MovieService) GetRecentReleases(number int) ([]model.MovieView, error) 
 		return nil, err
 	}
 
-	movieIDs := make([]int64, len(movies))
+	result := s.ConstructMovieViews(movies)
+
+
+	return result, nil
+}
+
+func (s *MovieService) GetMovieByPrefix(prefix string) ([]model.MovieView, error) {
+	movies, err := s.repo.GetMoviesByPrefix(prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	result := s.ConstructMovieViews(movies)
+	return result, nil
+}
+
+func (s *MovieService) ConstructMovieViews(movies []model.Movie) []model.MovieView {
 	result := make([]model.MovieView, len(movies))
+
+	if len(movies) == 0 {
+		return result
+	}
+
+	movieIDs := make([]int64, len(movies))
+
 
 	for i, m := range movies {
 		movieIDs[i] = m.ID
@@ -164,7 +187,10 @@ func (s *MovieService) GetRecentReleases(number int) ([]model.MovieView, error) 
 			ID:          m.ID,
 			Information: m.Information,
 			Title:       m.Title,
-			PosterURL:   *m.PosterURL,
+		}
+
+		if m.PosterURL != nil {
+			result[i].PosterURL = *m.PosterURL
 		}
 	}
 
@@ -180,7 +206,7 @@ func (s *MovieService) GetRecentReleases(number int) ([]model.MovieView, error) 
 		}
 	}
 
-	return result, nil
+	return result
 }
 
 func (s *MovieService) GetSimilarMovies(movieID int64, number int) ([]model.MovieView, error) {
@@ -204,32 +230,12 @@ func (s *MovieService) GetSimilarMovies(movieID int64, number int) ([]model.Movi
 		movieIDs[i] = sim.ID
 	}
 
-	result := make([]model.MovieView, number)
-
 	movies, err := s.repo.GetMovieByIDs(movieIDs)
 	if err != nil {
 		return nil, err
 	}
 
-	avgs, err := s.ratingRepo.GetAVGMovieRating(movieIDs)
-	for i, m := range movies {
-		result[i] = model.MovieView{
-			ID: m.ID,
-			Title: m.Title,
-			Information: m.Information,
-		}
-		if m.PosterURL != nil {
-			result[i].PosterURL = *m.PosterURL
-		}
-
-		for _, avg := range avgs {
-			if avg.Key == m.ID {
-				result[i].AverageRating = model.RoundRating(avg.Value)
-				break
-			}
-		}
-
-	}
+	result := s.ConstructMovieViews(movies)
 
 
 	return result, nil

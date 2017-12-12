@@ -38,6 +38,7 @@ func bootstrapRoutes(r *gin.Engine, routes service.RouteService) {
 	r.GET("/movies/top", routes.GetTopMovies)
 	r.GET("/movies/recommended", routes.GetReccommendedMovies)
 	r.GET("/movies/recent", routes.GetRecentReleases)
+	r.GET("/movies/search", routes.GetSearchMovies)
 }
 
 func initServices(userRepo repo.UserRepo, ratingRepo repo.RatingRepo, movieRepo repo.MovieRepo) (

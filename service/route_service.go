@@ -160,3 +160,19 @@ func (s *RouteService) GetSimilar(c *gin.Context) {
 
 	c.JSON(200, movieViews)
 }
+
+func (s *RouteService) GetSearchMovies(c *gin.Context) {
+	prefix, ok := c.GetQuery("prefix")
+	if !ok {
+		c.JSON(http.StatusBadRequest, structs.CustomError{Message: "Prefix is not present"})
+		return
+	}
+
+	movieViews, err := s.movieService.GetMovieByPrefix(prefix)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, structs.CustomError{Message: err.Error()})
+		return
+	}
+
+	c.JSON(200, movieViews)
+}
