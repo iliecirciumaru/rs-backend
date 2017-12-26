@@ -42,7 +42,7 @@ func main() {
 	//	log.Fatal(err)
 	//}
 
-	err = migratePosters(4350, 5300)
+	err = migratePosters(8900, 9125)
 	if err != nil {
 		log.Fatal(err)
 	}
