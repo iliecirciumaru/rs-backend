@@ -6,6 +6,7 @@ import (
 	"math"
 	"sort"
 	"sync"
+	"time"
 )
 
 type Recommendation struct {
@@ -162,6 +163,7 @@ func (r *Recommendation) PredictUserScoreIICLF(userID int64, ratings []Rating) [
 
 	if r.movieSimilarties == nil {
 		r.calculateMovieSimilarites(movieUserRatings)
+		return nil
 	}
 
 
@@ -226,6 +228,8 @@ func (r *Recommendation) PredictUserScoreIICLF(userID int64, ratings []Rating) [
 
 
 func (r *Recommendation) calculateMovieSimilarites(movieUserRatings map[int64]map[int64]float64) {
+	fmt.Println("Start calculating movie similarities")
+	start := time.Now().UnixNano()
 	var wg sync.WaitGroup
 	mutex := sync.Mutex{}
 
@@ -257,6 +261,11 @@ func (r *Recommendation) calculateMovieSimilarites(movieUserRatings map[int64]ma
 
 
 	wg.Wait()
+
+
+	end := time.Now().UnixNano()
+
+	fmt.Printf("Movie similarities are calculated and cached, time: %.2fs\n", float64(end-start) / 1000000000)
 }
 
 func (r *Recommendation) GetMostSimilarMovies(movieID int64, ratings []Rating) []Similarity {

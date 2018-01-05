@@ -79,3 +79,10 @@ func (r *MovieRepo) GetMoviesByPrefix(prefix string) ([]model.Movie, error) {
 
 	return movies, err
 }
+
+func (r *MovieRepo) GetAll() ([]model.Movie, error) {
+	var movies []model.Movie
+	err := r.db.SelectFrom("movies").All(&movies)
+
+	return movies, err
+}

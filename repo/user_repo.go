@@ -36,3 +36,10 @@ func (r *UserRepo) GetUserByLoginAndPassword(login, password string) (model.User
 	err := query.One(&user)
 	return user, err
 }
+
+func (r *UserRepo) GetAll() ([]model.User, error) {
+	var users []model.User
+	err := r.db.SelectFrom("users").All(&users)
+
+	return users, err
+}

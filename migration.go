@@ -17,7 +17,7 @@ import (
 )
 
 func main() {
-	db, err := db.GetDb("root", "password", "rs")
+	db, err := db.GetDb("root", "password", "rsbig")
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
@@ -32,36 +32,36 @@ func main() {
 	//	log.Fatal(err)
 	//}
 
-	//err = migrateMovies(db)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
+	err = migrateMovies(db)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	//err = migrateRatings(db)
 	//if err != nil {
 	//	log.Fatal(err)
 	//}
 
-	err = migratePosters(8900, 9125)
-	if err != nil {
-		log.Fatal(err)
-	}
+	//err = migratePosters(8900, 9125)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
 }
 
 func migrateUsers(db *sql.DB) error {
-	_, err := db.Exec("TRUNCATE TABLE `users`")
-	if err != nil {
-		return err
-	}
+	//_, err := db.Exec("TRUNCATE TABLE `users`")
+	//if err != nil {
+	//	return err
+	//}
 
-	file, err := os.Open("./data/smallset/ratings.csv")
+	file, err := os.Open("./data/bigset/ratings.csv")
 	if err != nil {
 		return err
 	}
 
 	r := csv.NewReader(bufio.NewReader(file))
 	prevUser := 0
-	prepareQuery, err := db.Prepare("INSERT INTO users VALUES (?, ?, ?, ?)")
+	prepareQuery, err := db.Prepare("INSERT IGNORE INTO users VALUES (?, ?, ?, ?)")
 
 	logins := []string{"log1", "log2", "log3", "log4", "log5"}
 	passwords := []string{"pass1", "pass2", "pass3", "pass4", "pass5"}
@@ -105,28 +105,41 @@ func migrateUsers(db *sql.DB) error {
 	return nil
 }
 
-func migrateRatings(db *sql.DB) error {
-	_, err := db.Exec("TRUNCATE TABLE `ratings`")
-	if err != nil {
-		return err
-	}
+type ratingRow struct {
+	uID int
+	movieID int
+	rating float64
+	ts int
+}
 
-	file, err := os.Open("./data/smallset/ratings.csv")
+func migrateRatings(db *sql.DB) error {
+	//_, err := db.Exec("TRUNCATE TABLE `ratings`")
+	//if err != nil {
+	//	return err
+	//}
+
+	file, err := os.Open("./data/bigset/ratings.csv")
 	if err != nil {
 		return err
 	}
 
 	r := csv.NewReader(bufio.NewReader(file))
 
-	prepareQuery, err := db.Prepare("INSERT INTO ratings VALUES (?, ?, ?, ?)")
+
 
 	if err != nil {
 		return err
 	}
 
 	i := -1
+	bufferSize := 150
+	//entries := make([]ratingRow, 0, bufferSize)
+	vals := make([]interface{}, 0, bufferSize)
 	var userID, movieID, ts int
 	var rating float64
+	var prepareQuery *sql.Stmt
+	sqlStr := ""
+
 	for {
 		record, err := r.Read()
 		if err == io.EOF {
@@ -154,14 +167,26 @@ func migrateRatings(db *sql.DB) error {
 			return err
 		}
 
-		//i++
+		i++
+		sqlStr += "(?, ?, ?, ?), "
 		//if i == 10 {
 		//	break
 		//}
 
-		_, err = prepareQuery.Exec(userID, movieID, rating, ts)
-		if err != nil {
-			return err
+		vals = append(vals, userID, movieID, rating, ts)
+
+		if i == bufferSize {
+			i = 0
+
+			qStr := "INSERT INTO ratings(iduser, idmovie, rating, timestamp) VALUES " + sqlStr[0:len(sqlStr)-2]
+			prepareQuery, err = db.Prepare(qStr)
+			_, err = prepareQuery.Exec(vals...)
+			if err != nil {
+				fmt.Println(qStr)
+				return err
+			}
+			sqlStr = ""
+			vals = make([]interface{}, 0, bufferSize)
 		}
 	}
 
@@ -177,14 +202,14 @@ func migrateMovies(db *sql.DB) error {
 		return err
 	}
 
-	file, err := os.Open("./data/smallset/movies.csv")
+	file, err := os.Open("./data/bigset/movies.csv")
 	if err != nil {
 		return err
 	}
 
 	r := csv.NewReader(bufio.NewReader(file))
 
-	prepareQuery, err := db.Prepare("INSERT INTO movies VALUES (?, ?, ?)")
+	prepareQuery, err := db.Prepare("INSERT INTO movies(id, title, information) VALUES (?, ?, ?)")
 
 	if err != nil {
 		return err

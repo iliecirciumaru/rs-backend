@@ -16,18 +16,19 @@ import (
 var recommender model.Recommendation = model.Recommendation{UuNeighbours:2}
 
 func main() {
-	dbsess, err := db.GetUpperDB("root", "password", "127.0.0.1", "rs")
+	//dbsess, err := db.GetUpperDB("root", "password", "127.0.0.1", "rs")
+	dbsess, err := db.GetUpperDB("root", "password", "127.0.0.1", "rsbig")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	neighbours := []uint{2, 4, 5, 6, 8, 10, 12, 14, 15, 16, 20, 25, 30}
-	//uuResults := make([]structs.EvaluationUUResult, len(neighbours))
+	//uuResults := make([]structs.EvaluationResult, len(neighbours))
 
 
 	//// test UUCLF recommender
 	//for i, n := range neighbours {
-	//	uuResults[i] = EvaluateUURecommender(dbsess, n, true)
+	//	uuResults[i] = EvaluateRecommender(dbsess, n, true)
 	//}
 	//
 	//rawResult, _ := json.MarshalIndent(uuResults, "", "    ")
@@ -35,11 +36,12 @@ func main() {
 
 
 	// test IICLF recommender
-	neighbours = []uint{2, 4, 5, 6, 8, 10, 12, 14, 15, 16, 20, 25, 30}
-	iiResults := make([]structs.EvaluationUUResult, len(neighbours))
+	//neighbours = []uint{2, 4, 5, 6, 8, 10, 12, 14, 15, 16, 20, 25, 30}
+	neighbours = []uint{15}
+	iiResults := make([]structs.EvaluationResult, len(neighbours))
 
 	for i, n := range neighbours {
-		iiResults[i] = EvaluateUURecommender(dbsess, n, false)
+		iiResults[i] = EvaluateRecommender(dbsess, n, false)
 	}
 
 	rawResult, _ := json.MarshalIndent(iiResults, "", "    ")
@@ -61,8 +63,8 @@ func getRatings(dbsses sqlbuilder.Database, tableName string) []model.Rating {
 	return ratings
 }
 
-func EvaluateUURecommender(dbsess sqlbuilder.Database, neighbours uint, uuCLF bool) structs.EvaluationUUResult {
-	uuResult := structs.EvaluationUUResult{Neighbours: neighbours}
+func EvaluateRecommender(dbsess sqlbuilder.Database, neighbours uint, uuCLF bool) structs.EvaluationResult {
+	uuResult := structs.EvaluationResult{Neighbours: neighbours}
 
 	recommender.UuNeighbours = neighbours
 
@@ -75,11 +77,13 @@ func EvaluateUURecommender(dbsess sqlbuilder.Database, neighbours uint, uuCLF bo
 
 	userPredictedCount := 0
 
-	testratings := getRatings(dbsess, "testratings")
-	testUserMovieRating := recommender.GetUserMovieRatings(testratings)
-
 	normalRatings := getRatings(dbsess, "ratings")
 	userMovieRating := recommender.GetUserMovieRatings(normalRatings)
+
+	//testratings := getRatings(dbsess, "testratings")
+	percent := int(float32(len(normalRatings))*0.8)
+	testratings := normalRatings[0: percent]
+	testUserMovieRating := recommender.GetUserMovieRatings(testratings)
 
 	start := time.Now().UnixNano()
 	for userID, testMovieRatings := range testUserMovieRating {

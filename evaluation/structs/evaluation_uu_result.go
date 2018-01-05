@@ -1,6 +1,6 @@
 package structs
 
-type EvaluationUUResult struct {
+type EvaluationResult struct {
 	Neighbours      uint       `json:"neighbours"`
 	GlobalRMSE      float64    `json:"global_rmse"`
 	PredictionsUsed int        `json:"predictions_used"`
