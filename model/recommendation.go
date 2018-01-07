@@ -7,6 +7,7 @@ import (
 	"sort"
 	"sync"
 	"time"
+	"runtime"
 )
 
 type Recommendation struct {
@@ -162,29 +163,19 @@ func (r *Recommendation) PredictUserScoreIICLF(userID int64, ratings []Rating) [
 
 
 	if r.movieSimilarties == nil {
+		fmt.Println("Calculate Similarity from IICLF")
 		r.calculateMovieSimilarites(movieUserRatings)
-		return nil
 	}
 
 
 
-	//cosineSimilarities := make([]Similarity, 0, len(movieUserRatings)-1)
-
+	// make predictions
 	for movieID, _ := range movieUserRatings {
-		// calculate cosine similarites
-		//for movieID2, userRatings2 := range movieUserRatings {
-		//	if movieID == movieID2 {
-		//		continue
-		//	}
-		//
-		//	cosineSimilarities = append(cosineSimilarities, Similarity{
-		//		ID:    movieID2,
-		//		Value: r.cosineSimilarity(userRatings, userRatings2),
-		//	})
-		//
-		//}
-		//
-		//sort.Sort(BySimilarityDesc(cosineSimilarities))
+		// if user has rated this movie, we continue
+		if _, ok := uRatings[movieID]; ok {
+			continue
+		}
+
 
 		denominator := float64(0)
 		nominator := float64(0)
@@ -233,39 +224,42 @@ func (r *Recommendation) calculateMovieSimilarites(movieUserRatings map[int64]ma
 	var wg sync.WaitGroup
 	mutex := sync.Mutex{}
 
-	r.movieSimilarties = make(map[int64][]Similarity)
-
-	for movieID, uRatings := range movieUserRatings {
-		wg.Add(1)
-		go func(mID int64, uRats map[int64]float64, wg *sync.WaitGroup, mut *sync.Mutex) {
-			defer wg.Done()
-			cosineSimilarities := make([]Similarity, 0, len(movieUserRatings)-1)
-			for m2ID, u2Ratings := range movieUserRatings {
-				if mID == m2ID {
-					continue
-				}
-
-				cosineSimilarities = append(cosineSimilarities, Similarity{
-					ID:    m2ID,
-					Value: r.cosineSimilarity(uRats, u2Ratings),
-				})
-			}
-
-			sort.Sort(BySimilarityDesc(cosineSimilarities))
-			mutex.Lock()
-			r.movieSimilarties[mID] = cosineSimilarities
-			mutex.Unlock()
-
-		}(movieID, uRatings, &wg, &mutex)
+	if r.movieSimilarties == nil {
+		r.movieSimilarties = make(map[int64][]Similarity)
 	}
 
+	//for movieID, uRatings := range movieUserRatings {
+	//	wg.Add(1)
+	//	go r.CalculateMovieSimilarity(movieID, uRatings, &wg, &mutex, movieUserRatings)
+	//}
+
+	jobs := make(chan int64, 100)
+	//results := make(chan int64, 100)
+
+	// launch worker per cpu core
+	for i:= 1; i <= runtime.NumCPU(); i++ {
+		go r.CalculateMovieSimilarity(jobs, &wg, &mutex, movieUserRatings)
+	}
+
+	//j := int64(0)
+
+	for movieID, _ := range movieUserRatings {
+		wg.Add(1)
+		jobs <- movieID
+		//j++
+		//if j % 100 == 0 {
+		//	fmt.Println("100")
+		//}
+	}
+	close(jobs)
 
 	wg.Wait()
-
-
 	end := time.Now().UnixNano()
-
 	fmt.Printf("Movie similarities are calculated and cached, time: %.2fs\n", float64(end-start) / 1000000000)
+}
+
+func (r *Recommendation) UpdateSimilarities(ratings []Rating) {
+	r.calculateMovieSimilarites(r.getMovieUserRatings(ratings))
 }
 
 func (r *Recommendation) GetMostSimilarMovies(movieID int64, ratings []Rating) []Similarity {

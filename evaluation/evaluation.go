@@ -11,9 +11,11 @@ import (
 	"math"
 	"time"
 	"upper.io/db.v3/lib/sqlbuilder"
+	"github.com/iliecirciumaru/rs-backend/repo"
 )
 
 var recommender model.Recommendation = model.Recommendation{UuNeighbours:2}
+var clusterUtility model.ClusteringUtility = model.ClusteringUtility{recommender}
 
 func main() {
 	//dbsess, err := db.GetUpperDB("root", "password", "127.0.0.1", "rs")
@@ -22,22 +24,32 @@ func main() {
 		log.Fatal(err)
 	}
 
-	neighbours := []uint{2, 4, 5, 6, 8, 10, 12, 14, 15, 16, 20, 25, 30}
-	//uuResults := make([]structs.EvaluationResult, len(neighbours))
+	//evaluateUUCLF(dbsess)
+	//evaluateIICLF(dbsess)
+	evaluateIICLFClustering(dbsess)
+
+}
+
+func evaluateUUCLF(dbsess sqlbuilder.Database) {
+	//neighbours := []uint{2, 4, 5, 6, 8, 10, 12, 14, 15, 16, 20, 25, 30}
+	neighbours := []uint{5, 15,25}
+	uuResults := make([]structs.EvaluationResult, len(neighbours))
 
 
-	//// test UUCLF recommender
-	//for i, n := range neighbours {
-	//	uuResults[i] = EvaluateRecommender(dbsess, n, true)
-	//}
-	//
-	//rawResult, _ := json.MarshalIndent(uuResults, "", "    ")
-	//saveResults(rawResult, "uuCLF")
+	// test UUCLF recommender
+	for i, n := range neighbours {
+		uuResults[i] = EvaluateRecommender(dbsess, n, true)
+	}
+
+	rawResult, _ := json.MarshalIndent(uuResults, "", "    ")
+	saveResults(rawResult, "uuCLF")
+}
 
 
+func evaluateIICLF(dbsess sqlbuilder.Database) {
 	// test IICLF recommender
-	//neighbours = []uint{2, 4, 5, 6, 8, 10, 12, 14, 15, 16, 20, 25, 30}
-	neighbours = []uint{15}
+	neighbours := []uint{2, 4, 5, 6, 8, 10, 12, 14, 15, 16, 20, 25, 30}
+	//neighbours := []uint{15}
 	iiResults := make([]structs.EvaluationResult, len(neighbours))
 
 	for i, n := range neighbours {
@@ -46,7 +58,34 @@ func main() {
 
 	rawResult, _ := json.MarshalIndent(iiResults, "", "    ")
 	saveResults(rawResult, "iiCLF")
+}
 
+func evaluateIICLFClustering(dbsess sqlbuilder.Database) {
+	ratingRepo := repo.NewRatingRepo(dbsess)
+	mostRatedMovies, err := ratingRepo.GetMaxNumberRatedMovies(1)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ratings := getRatings(dbsess, "ratings")
+
+	clusters := clusterUtility.Cluster(ratings[0: getTopRating(len(ratings))], mostRatedMovies[0].Key)
+	var filteredRatings []model.Rating
+	for _, c := range clusters {
+		filteredRatings = clusterUtility.ExtractRatings(ratings, c)
+		recommender.UpdateSimilarities(filteredRatings)
+	}
+
+	//neighbours := []uint{2, 4, 5, 6, 8, 10, 12, 14, 15, 16, 20, 25, 30}
+	neighbours := []uint{5, 10, 15, 20}
+	iiResults := make([]structs.EvaluationResult, len(neighbours))
+
+	for i, n := range neighbours {
+		iiResults[i] = EvaluateRecommender(dbsess, n, false)
+	}
+
+	rawResult, _ := json.MarshalIndent(iiResults, "", "    ")
+	saveResults(rawResult, "iiCLF_cluster_big")
 }
 
 func saveResults(data []byte, filename string) {
@@ -80,12 +119,12 @@ func EvaluateRecommender(dbsess sqlbuilder.Database, neighbours uint, uuCLF bool
 	normalRatings := getRatings(dbsess, "ratings")
 	userMovieRating := recommender.GetUserMovieRatings(normalRatings)
 
-	//testratings := getRatings(dbsess, "testratings")
-	percent := int(float32(len(normalRatings))*0.8)
-	testratings := normalRatings[0: percent]
+	testratings := getRatings(dbsess, "testratings")
+	//testratings := normalRatings[0: getTopRating(len(normalRatings))]
 	testUserMovieRating := recommender.GetUserMovieRatings(testratings)
 
 	start := time.Now().UnixNano()
+
 	for userID, testMovieRatings := range testUserMovieRating {
 		if len(testMovieRatings) == 0 {
 			continue
@@ -94,6 +133,9 @@ func EvaluateRecommender(dbsess sqlbuilder.Database, neighbours uint, uuCLF bool
 		//	continue
 		//}
 		userPredictedCount++
+		if userPredictedCount > 1000 {
+			break
+		}
 
 		//userRMSE = 0
 		//userCount = 0
@@ -137,4 +179,13 @@ func EvaluateRecommender(dbsess sqlbuilder.Database, neighbours uint, uuCLF bool
 	uuResult.TotalTime = float64(end-start) / 1000000000
 	uuResult.TimePerUser = float64(uuResult.TotalTime) / float64(userPredictedCount)
 	return uuResult
+}
+
+
+func getTopRating(allRatingLength int) int {
+	return int(float32(allRatingLength)*0.8)
+}
+
+func getBottomRating(allRatingLength int) int {
+	return int(float32(allRatingLength)*0.2)
 }

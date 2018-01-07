@@ -66,5 +66,27 @@ func (r *RatingRepo) GetAVGMovieRating(movieIDs []int64) ([]structs.KeyValue, er
 	}
 
 	return res, err
-
 }
+
+// return movies which are rated the most
+func (r *RatingRepo) GetMaxNumberRatedMovies(number int) ([]structs.KeyValue, error){
+	var res []structs.KeyValue
+
+	qs := fmt.Sprintf("SELECT idmovie as 'key', COUNT(idmovie) as 'value' " +
+		"FROM ratings GROUP BY idmovie ORDER BY value DESC LIMIT %d", number)
+
+	rows, err := r.db.Query(qs)
+	if err != nil {
+		return nil, err
+	}
+
+	iter := sqlbuilder.NewIterator(rows)
+	err = iter.All(&res)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return res, err
+}
+

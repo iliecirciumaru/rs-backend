@@ -84,5 +84,7 @@ func (r *MovieRepo) GetAll() ([]model.Movie, error) {
 	var movies []model.Movie
 	err := r.db.SelectFrom("movies").All(&movies)
 
+
+
 	return movies, err
 }
