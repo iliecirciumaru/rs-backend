@@ -241,15 +241,15 @@ func (r *Recommendation) calculateMovieSimilarites(movieUserRatings map[int64]ma
 		go r.CalculateMovieSimilarity(jobs, &wg, &mutex, movieUserRatings)
 	}
 
-	//j := int64(0)
+	j := int64(0)
 
 	for movieID, _ := range movieUserRatings {
 		wg.Add(1)
 		jobs <- movieID
-		//j++
-		//if j % 100 == 0 {
-		//	fmt.Println("100")
-		//}
+		j++
+		if j % 1000 == 0 {
+			fmt.Println(j / 1000, "k")
+		}
 	}
 	close(jobs)
 

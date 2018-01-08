@@ -5,6 +5,7 @@ import (
 	"github.com/iliecirciumaru/rs-backend/db"
 	"github.com/iliecirciumaru/rs-backend/repo"
 	"github.com/iliecirciumaru/rs-backend/model"
+	"fmt"
 )
 
 func main() {
@@ -22,13 +23,24 @@ func main() {
 	}
 
 	rec := model.Recommendation{UuNeighbours: 3}
-	ca := model.ClusteringUtility{Rec: rec}
+	ca := model.ClusteringUtility{
+		Rec: rec,
+		MinCentroidRates: 200,
+		ClusterNum: 3,
+	}
 
 	ratings, err := ratingRepo.GetAll()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	ca.Cluster(ratings, mostRatedMovies[0].Key)
+	clusters := ca.Cluster(ratings[0:int(float32(len(ratings))*0.8)], mostRatedMovies[0].Key)
+
+	var filteredRatings []model.Rating
+	for centroid, c := range clusters {
+		filteredRatings = ca.ExtractRatings(ratings, c)
+		fmt.Printf("Update Similarities, cluster %v, ratings %v\n", centroid, len(filteredRatings))
+		//recommender.UpdateSimilarities(filteredRatings)
+	}
 
 }

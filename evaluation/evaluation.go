@@ -15,11 +15,15 @@ import (
 )
 
 var recommender model.Recommendation = model.Recommendation{UuNeighbours:2}
-var clusterUtility model.ClusteringUtility = model.ClusteringUtility{recommender}
+var clusterUtility model.ClusteringUtility = model.ClusteringUtility{
+	Rec:recommender,
+	MinCentroidRates: 10,
+	ClusterNum: 3,
+}
 
 func main() {
-	//dbsess, err := db.GetUpperDB("root", "password", "127.0.0.1", "rs")
-	dbsess, err := db.GetUpperDB("root", "password", "127.0.0.1", "rsbig")
+	dbsess, err := db.GetUpperDB("root", "password", "127.0.0.1", "rs")
+	//dbsess, err := db.GetUpperDB("root", "password", "127.0.0.1", "rsbig")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -27,7 +31,6 @@ func main() {
 	//evaluateUUCLF(dbsess)
 	//evaluateIICLF(dbsess)
 	evaluateIICLFClustering(dbsess)
-
 }
 
 func evaluateUUCLF(dbsess sqlbuilder.Database) {
@@ -38,7 +41,7 @@ func evaluateUUCLF(dbsess sqlbuilder.Database) {
 
 	// test UUCLF recommender
 	for i, n := range neighbours {
-		uuResults[i] = EvaluateRecommender(dbsess, n, true)
+		uuResults[i] = EvaluateRecommender(dbsess, n, true, nil)
 	}
 
 	rawResult, _ := json.MarshalIndent(uuResults, "", "    ")
@@ -53,7 +56,7 @@ func evaluateIICLF(dbsess sqlbuilder.Database) {
 	iiResults := make([]structs.EvaluationResult, len(neighbours))
 
 	for i, n := range neighbours {
-		iiResults[i] = EvaluateRecommender(dbsess, n, false)
+		iiResults[i] = EvaluateRecommender(dbsess, n, false, nil)
 	}
 
 	rawResult, _ := json.MarshalIndent(iiResults, "", "    ")
@@ -71,8 +74,9 @@ func evaluateIICLFClustering(dbsess sqlbuilder.Database) {
 
 	clusters := clusterUtility.Cluster(ratings[0: getTopRating(len(ratings))], mostRatedMovies[0].Key)
 	var filteredRatings []model.Rating
-	for _, c := range clusters {
+	for centroid, c := range clusters {
 		filteredRatings = clusterUtility.ExtractRatings(ratings, c)
+		fmt.Printf("Update Similarities, cluster %v, ratings %v\n", centroid, len(filteredRatings))
 		recommender.UpdateSimilarities(filteredRatings)
 	}
 
@@ -81,7 +85,7 @@ func evaluateIICLFClustering(dbsess sqlbuilder.Database) {
 	iiResults := make([]structs.EvaluationResult, len(neighbours))
 
 	for i, n := range neighbours {
-		iiResults[i] = EvaluateRecommender(dbsess, n, false)
+		iiResults[i] = EvaluateRecommender(dbsess, n, false, ratings)
 	}
 
 	rawResult, _ := json.MarshalIndent(iiResults, "", "    ")
@@ -102,7 +106,8 @@ func getRatings(dbsses sqlbuilder.Database, tableName string) []model.Rating {
 	return ratings
 }
 
-func EvaluateRecommender(dbsess sqlbuilder.Database, neighbours uint, uuCLF bool) structs.EvaluationResult {
+func EvaluateRecommender(dbsess sqlbuilder.Database, neighbours uint, uuCLF bool, ratings []model.Rating) structs.EvaluationResult {
+	fmt.Printf("Start recommender evaluation, neighbours: %v, uuCLF: %v\n", neighbours, uuCLF)
 	uuResult := structs.EvaluationResult{Neighbours: neighbours}
 
 	recommender.UuNeighbours = neighbours
@@ -116,11 +121,14 @@ func EvaluateRecommender(dbsess sqlbuilder.Database, neighbours uint, uuCLF bool
 
 	userPredictedCount := 0
 
-	normalRatings := getRatings(dbsess, "ratings")
-	userMovieRating := recommender.GetUserMovieRatings(normalRatings)
+	if ratings == nil {
+		ratings = getRatings(dbsess, "ratings")
+	}
 
-	testratings := getRatings(dbsess, "testratings")
-	//testratings := normalRatings[0: getTopRating(len(normalRatings))]
+	userMovieRating := recommender.GetUserMovieRatings(ratings)
+
+	//testratings := getRatings(dbsess, "testratings")
+	testratings := ratings[0: getTopRating(len(ratings))]
 	testUserMovieRating := recommender.GetUserMovieRatings(testratings)
 
 	start := time.Now().UnixNano()
@@ -133,8 +141,12 @@ func EvaluateRecommender(dbsess sqlbuilder.Database, neighbours uint, uuCLF bool
 		//	continue
 		//}
 		userPredictedCount++
-		if userPredictedCount > 1000 {
+		if userPredictedCount > 500 {
 			break
+		}
+
+		if userPredictedCount % 25 == 0 {
+			fmt.Println(userPredictedCount / 25, "k")
 		}
 
 		//userRMSE = 0

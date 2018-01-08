@@ -27,6 +27,8 @@ import (
 
 func (r *Recommendation) CalculateMovieSimilarity(jobs chan int64, wg *sync.WaitGroup, mut *sync.Mutex, movieUserRatings map[int64]map[int64]float64) {
 	var uRats map[int64]float64
+	var simils2 []Similarity
+	var ok bool
 	for mID := range jobs {
 		uRats, _ = movieUserRatings[mID]
 
@@ -36,10 +38,30 @@ func (r *Recommendation) CalculateMovieSimilarity(jobs chan int64, wg *sync.Wait
 				continue
 			}
 
-			cosineSimilarities = append(cosineSimilarities, Similarity{
-				ID:    m2ID,
-				Value: r.cosineSimilarity(uRats, u2Ratings),
-			})
+			mut.Lock()
+			simils2, ok = r.movieSimilarties[m2ID];
+			mut.Unlock()
+
+			if  ok {
+				for _, s := range simils2 {
+					if s.ID == mID {
+						cosineSimilarities = append(cosineSimilarities, Similarity{
+							ID:    m2ID,
+							Value: s.Value,
+						})
+						break
+					}
+				}
+			} else {
+				cosineSimilarities = append(cosineSimilarities, Similarity{
+					ID:    m2ID,
+					Value: r.cosineSimilarity(uRats, u2Ratings),
+				})
+			}
+
+
+
+
 		}
 
 		sort.Sort(BySimilarityDesc(cosineSimilarities))
