@@ -1,20 +1,20 @@
 package model
 
 import (
-	"sort"
 	"fmt"
-	"time"
 	"github.com/iliecirciumaru/rs-backend/structs"
+	"sort"
+	"time"
 )
 
 type ClusteringUtility struct {
-	Rec Recommendation
+	Rec              Recommendation
 	MinCentroidRates int
-	ClusterNum int
+	ClusterNum       int
 }
 
 func (c *ClusteringUtility) ExtractRatings(ratings []Rating, movieSet []int64) []Rating {
-	newRats := make([]Rating, 0, 256)
+	newRats := make([]Rating, 0, 1024)
 	for _, r := range ratings {
 		if in(r.MovieID, movieSet) {
 			newRats = append(newRats, r)
@@ -24,18 +24,16 @@ func (c *ClusteringUtility) ExtractRatings(ratings []Rating, movieSet []int64) [
 	return newRats
 }
 
-func (c *ClusteringUtility) Cluster(ratings []Rating, mostRatedMovie int64) map[int64][]int64{
+func (c *ClusteringUtility) Cluster(ratings []Rating, mostRatedMovie int64) map[int64][]int64 {
 	clustersNum := c.ClusterNum
 	fmt.Printf("Start clustering on %v clusters\n", clustersNum)
 	start := time.Now().UnixNano()
 	movieUserRatings := c.Rec.getMovieUserRatings(ratings)
 	c.Rec.normalizeUserMovieOrMovieUserRatings(movieUserRatings)
 
-
-
 	mostRatedMovieRats, _ := movieUserRatings[mostRatedMovie]
 
-	similarities := make([]Similarity, len(movieUserRatings) - 1)
+	similarities := make([]Similarity, len(movieUserRatings)-1)
 
 	i := 0
 	for mID, uRats := range movieUserRatings {
@@ -44,7 +42,7 @@ func (c *ClusteringUtility) Cluster(ratings []Rating, mostRatedMovie int64) map[
 		}
 
 		similarities[i] = Similarity{
-			ID: mID,
+			ID:    mID,
 			Value: c.Rec.cosineSimilarity(mostRatedMovieRats, uRats),
 		}
 
@@ -53,37 +51,40 @@ func (c *ClusteringUtility) Cluster(ratings []Rating, mostRatedMovie int64) map[
 
 	sort.Sort(BySimilarityDesc(similarities))
 
-	delta := float64(1) / float64(clustersNum)
+	delta := float32(1) / float32(clustersNum - 1)
+	fmt.Println("Delta", delta)
 
 	centroids := make([]int64, clustersNum)
 	centroids[0] = mostRatedMovie
+	var pos int
+	var tempID int64
 	for i := 1; i < clustersNum; i++ {
-		pos := int(float64(i) * delta*float64(len(similarities)))
-		tempID := similarities[pos].ID
+		if i == clustersNum-1 {
+			pos = len(similarities)-1
+			tempID = similarities[pos].ID
+		} else {
+			pos = int(float32(i) * delta * float32(len(similarities)))
+			tempID = similarities[pos].ID
+		}
+
 		for len(movieUserRatings[tempID]) < c.MinCentroidRates {
-			pos--;
+			pos--
 			tempID = similarities[pos].ID
 		}
 
 		centroids[i] = tempID
 
-		//fmt.Println(similarities[int(float64(i) * delta*float64(len(similarities)))].Value)
+		//fmt.Println(similarities[int(float32(i) * delta*float32(len(similarities)))].Value)
 
 
-		if i == clustersNum - 1 {
-			centroids[i] = similarities[len(similarities) - 1].ID
-		}
 	}
 
-
-
 	cluster := make(map[int64][]int64)
-	//var maxSimilarity, tempSimilarity float64
-	var maxSimilarity float64
+	//var maxSimilarity, tempSimilarity float32
+	var maxSimilarity float32
 	var centroid int64
 	resultChannel := make(chan structs.KeyValue)
 	var similarToCentroid structs.KeyValue
-
 
 	for _, centroid = range centroids {
 		cluster[centroid] = make([]int64, 0, 64)
@@ -109,7 +110,7 @@ func (c *ClusteringUtility) Cluster(ratings []Rating, mostRatedMovie int64) map[
 		}
 
 		for i := 0; i < clustersNum; i++ {
-			similarToCentroid = <- resultChannel
+			similarToCentroid = <-resultChannel
 			if similarToCentroid.Value > maxSimilarity {
 				maxSimilarity = similarToCentroid.Value
 				centroid = similarToCentroid.Key
@@ -120,17 +121,18 @@ func (c *ClusteringUtility) Cluster(ratings []Rating, mostRatedMovie int64) map[
 	}
 
 	end := time.Now().UnixNano()
-	fmt.Printf("Clustering is finished, time: %.2fs\n", float64(end-start) / 1000000000)
+	fmt.Printf("Clustering is finished, time: %.2fs\n", float64(end-start)/1000000000)
 
 	for centroid, neigh := range cluster {
 		fmt.Printf("Centroid %v, neigh %v, rates %v\n", centroid, len(neigh), len(movieUserRatings[centroid]))
 	}
 
+	movieUserRatings = nil
+
 	return cluster
 }
 
-
-func (c *ClusteringUtility) CosineSimilarityAsync(centroid int64, ratings1, ratings2 map[int64]float64, result chan<- structs.KeyValue) {
+func (c *ClusteringUtility) CosineSimilarityAsync(centroid int64, ratings1, ratings2 map[int64]float32, result chan<- structs.KeyValue) {
 	similarity := c.Rec.cosineSimilarity(ratings1, ratings2)
 	result <- structs.KeyValue{Key: centroid, Value: similarity}
 }
@@ -144,4 +146,3 @@ func in(el int64, a []int64) bool {
 
 	return false
 }
-

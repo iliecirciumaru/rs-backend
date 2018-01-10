@@ -5,7 +5,7 @@ import (
 	"sort"
 )
 
-//func (r *Recommendation) CalculateMovieSimilarity(mID int64, uRats map[int64]float64, wg *sync.WaitGroup, mut *sync.Mutex, movieUserRatings map[int64]map[int64]float64) {
+//func (r *Recommendation) CalculateMovieSimilarity(mID int64, uRats map[int64]float32, wg *sync.WaitGroup, mut *sync.Mutex, movieUserRatings map[int64]map[int64]float32) {
 //	defer wg.Done()
 //	cosineSimilarities := make([]Similarity, 0, len(movieUserRatings)-1)
 //	for m2ID, u2Ratings := range movieUserRatings {
@@ -21,12 +21,12 @@ import (
 //
 //	sort.Sort(BySimilarityDesc(cosineSimilarities))
 //	mut.Lock()
-//	r.movieSimilarties[mID] = cosineSimilarities
+//	r.MovieSimilarties[mID] = cosineSimilarities
 //	mut.Unlock()
 //}
 
-func (r *Recommendation) CalculateMovieSimilarity(jobs chan int64, wg *sync.WaitGroup, mut *sync.Mutex, movieUserRatings map[int64]map[int64]float64) {
-	var uRats map[int64]float64
+func (r *Recommendation) CalculateMovieSimilarity(jobs chan int64, wg *sync.WaitGroup, mut *sync.Mutex, movieUserRatings map[int64]map[int64]float32) {
+	var uRats map[int64]float32
 	var simils2 []Similarity
 	var ok bool
 	for mID := range jobs {
@@ -39,7 +39,7 @@ func (r *Recommendation) CalculateMovieSimilarity(jobs chan int64, wg *sync.Wait
 			}
 
 			mut.Lock()
-			simils2, ok = r.movieSimilarties[m2ID];
+			simils2, ok = r.MovieSimilarties[m2ID];
 			mut.Unlock()
 
 			if  ok {
@@ -66,7 +66,7 @@ func (r *Recommendation) CalculateMovieSimilarity(jobs chan int64, wg *sync.Wait
 
 		sort.Sort(BySimilarityDesc(cosineSimilarities))
 		mut.Lock()
-		r.movieSimilarties[mID] = cosineSimilarities
+		r.MovieSimilarties[mID] = cosineSimilarities
 		mut.Unlock()
 
 		wg.Done()

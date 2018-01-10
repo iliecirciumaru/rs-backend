@@ -26,7 +26,7 @@ func main() {
 	ca := model.ClusteringUtility{
 		Rec: rec,
 		MinCentroidRates: 200,
-		ClusterNum: 3,
+		ClusterNum: 6,
 	}
 
 	ratings, err := ratingRepo.GetAll()

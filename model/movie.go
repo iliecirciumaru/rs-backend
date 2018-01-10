@@ -11,9 +11,9 @@ type UserMovieView struct {
 	ID            int64   `json:"id"`
 	Title         string  `json:"title"`
 	Information   string  `json:"info"`
-	UserRating    float64 `json:"user_rating"`
+	UserRating    float32 `json:"user_rating"`
 	PosterURL     string  `json:"poster_image_url"`
-	AverageRating float64 `json:"average_rating"`
+	AverageRating float32 `json:"average_rating"`
 	Rated		  bool    `json:"rated"`
 }
 
@@ -21,13 +21,13 @@ type MovieView struct {
 	ID            int64   `json:"id"`
 	Title         string  `json:"title"`
 	Information   string  `json:"info"`
-	AverageRating float64 `json:"average_rating"`
+	AverageRating float32 `json:"average_rating"`
 	PosterURL     string  `json:"poster_image_url"`
 }
 
 type MoviePrediction struct {
 	MovieID        int64
-	PredictedScore float64
+	PredictedScore float32
 }
 
 type ByScoreDesc []MoviePrediction

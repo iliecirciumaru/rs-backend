@@ -88,16 +88,16 @@ func computeMatrix(dbsess sqlbuilder.Database) *mat.Dense {
 	uCount := len(users)
 	mCount := len(movies)
 
-	var movieRatings map[int64]float64
+	var movieRatings map[int64]float32
 	var ok bool
-	var r float64
+	var r float32
 
 	matrix := make([]float64, uCount * mCount, uCount * mCount)
 	for i, user := range users {
 		if movieRatings, ok = userMovieRatings[user.ID]; ok {
 			for j, movie := range movies {
 				if r, ok = movieRatings[movie.ID]; ok {
-					matrix[i * mCount + j] = r
+					matrix[i * mCount + j] = float64(r)
 				}
 			}
 		}

@@ -2,7 +2,7 @@ package model
 
 type Similarity struct {
 	ID    int64
-	Value float64
+	Value float32
 }
 
 type BySimilarityDesc []Similarity
